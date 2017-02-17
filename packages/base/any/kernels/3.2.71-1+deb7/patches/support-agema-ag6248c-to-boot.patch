@@ -1,0 +1,277 @@
+diff --git a/arch/arm/boot/dts/agema_ag6248c_poe.dts b/arch/arm/boot/dts/agema_ag6248c_poe.dts
+new file mode 100644
+index 0000000..4cb361c
+--- /dev/null
++++ b/arch/arm/boot/dts/agema_ag6248c_poe.dts
+@@ -0,0 +1,139 @@
++/*
++ * Agema System, Inc. AG6248C Device Tree Source
++ *
++ * Copyright 2015, Cumulus Networks, Inc.
++ *
++ * This program is free software; you can redistribute  it and/or modify it
++ * under  the terms of  the GNU General  Public License as published by the
++ * Free Software Foundation;  either version 2 of the  License, or (at your
++ * option) any later version.
++ *
++ */
++/dts-v1/;
++/include/ "helix4.dtsi"
++
++/ {
++    model = "agema,ag6248c_poe";
++    compatible = "agema,ag6248c_poe";
++
++    aliases {
++        serial0 = &uart0;
++        i2c-controller0 = &i2c0;
++        i2c-controller1 = &i2c1;
++    };
++
++    memory {
++        reg = <0x61000000 0x7f000000>;
++    };
++
++    cpus {
++        #address-cells = <1>;
++        #size-cells = <0>;
++
++        cpu@0 {
++            device_type = "cpu";
++            compatible = "arm,cortex-a9";
++            next-level-cache = <&L2>;
++            reg = <0x00>;
++        };
++        cpu@1 {
++            device_type = "cpu";
++            compatible = "arm,cortex-a9";
++            next-level-cache = <&L2>;
++            reg = <0x01>;
++        };
++    };
++
++    localbus@1c000000 {
++        #address-cells = <0x2>;
++        #size-cells = <0x1>;
++        /* NAND Flash */
++        ranges = <
++            0x0 0x0 0x0 0x1c000000 0x00120000
++            0x1 0x0 0x0 0x1c120000 0x00040000
++        >;
++
++        flash@0,0 {
++            #address-cells = <1>;
++            #size-cells = <1>;
++            compatible = "cfi-flash";
++            reg = <0x0 0x0 0x02000000>;
++            byteswap;
++
++            partition@0 {
++                /* uboot */
++                reg = <0x00000000 0x00100000>;
++                label = "uboot";
++            };
++            partition@1 {
++                /* uboot-env */
++                reg = <0x00100000 0x00100000>;
++                label = "uboot-env";
++                env_size = <0x2000>;
++            };
++            partition@2 {
++                /* board_eeprom */
++                reg = <0x00200000 0x00100000>;
++                label = "board_eeprom";
++            };
++            partition@3 {
++                /* shmoo */
++                reg = <0x00300000 0x00100000>;
++                label = "shmoo";
++            };
++            partition@4 {
++                /* onie */
++                reg = <0x00400000 0x00800000>;
++                label = "onie";
++            };
++            partition@5 {
++                /* open */
++                reg = <0x00c00000 0x03c00000>;
++                label = "open";
++            };
++            partition@6 {
++                /* open2 */
++                reg = <0x04800000 0x7d000000>;
++                label = "open2";
++            };
++            partition@7 {
++                /* diag */
++                reg = <0xfec00000 0x01000000>;
++                label = "diag";
++            };
++        };
++    };
++
++    i2c0: i2c@18038000 {
++        compatible = "iproc-smb";
++        reg = <0x18038000 0x1000>;
++        #address-cells = <1>;
++        #size-cells = <0>;
++        interrupts = < 127 >;
++        clock-frequency = <400000>;
++        cpld@1,0 {
++            #address-cells = <1>;
++            #size-cells = <1>;
++            compatible = "agema,ag6248c_poe_cpld";
++            label = "cpld";
++            reg = <0x30>;
++        };
++    };
++
++    i2c1: i2c@1803b000 {
++        compatible = "iproc-smb";
++        reg = <0x1803b000 0x1000>;
++        #address-cells = <1>;
++        #size-cells = <0>;
++        interrupts = < 128 >;
++        clock-frequency = <100000>;
++        mux@70 {
++            compatible = "ti,pca9548";
++            reg = <0x70>;
++            #address-cells = <1>;
++            #size-cells = <0>;
++            deselect-on-exit;
++
++        };
++    };
++};
+diff --git a/arch/arm/mach-iproc/Kconfig b/arch/arm/mach-iproc/Kconfig
+index c77208d..cbde116 100644
+--- a/arch/arm/mach-iproc/Kconfig
++++ b/arch/arm/mach-iproc/Kconfig
+@@ -49,6 +49,12 @@ config MACH_ACCTON_AS4610_54
+ 	help
+ 	  Support for Accton AS4610-54 POE and non -POE board.
+ 
++config MACH_AGEMA_AG6248C
++        select ARM_L1_CACHE_SHIFT_6
++        bool "Support Agema AG6248C POE and non-POE board"
++        help
++          Support for Agema AG6248C POE and non -POE board.
++
+ config MACH_IPROC_P7
+ 	bool "Support iProc Profile 7 architecture"
+ 	depends on MACH_GH
+diff --git a/arch/arm/mach-iproc/board_bu.c b/arch/arm/mach-iproc/board_bu.c
+index 7e07ed1..5479020 100644
+--- a/arch/arm/mach-iproc/board_bu.c
++++ b/arch/arm/mach-iproc/board_bu.c
+@@ -1083,6 +1083,7 @@ MACHINE_END
+ static const char * helix4_dt_board_compat[] = {
+     "dni,dni_3448p",
+     "accton,as4610_54",
++    "agema,ag6248c_poe",
+     NULL
+ };
+ 
+diff --git a/arch/arm/mach-iproc/common.c b/arch/arm/mach-iproc/common.c
+index b116ffc..24b07fb 100644
+--- a/arch/arm/mach-iproc/common.c
++++ b/arch/arm/mach-iproc/common.c
+@@ -187,7 +187,8 @@ static struct platform_device wdt_device =
+ enum {
+ 	HX4_NONE = 0,
+ 	HX4_DNI_3448P,
+-	HX4_ACCTON_AS4610_54
++	HX4_ACCTON_AS4610_54,
++	HX4_AGEMA_AG6248C_POE,
+ };
+ 
+ /*
+@@ -212,6 +213,8 @@ int brcm_get_hx4_model(void)
+ 		return HX4_DNI_3448P;
+ 	else if (!strcmp(model, "accton,as4610_54"))
+ 		return HX4_ACCTON_AS4610_54;
++	else if (!strcmp(model, "accton,ag6248c_poe"))
++		return HX4_AGEMA_AG6248C_POE;
+ 
+ 	printk( KERN_ERR "Unknown Model %s\n", model );
+ 	return HX4_NONE;
+diff --git a/arch/arm/mach-iproc/include/mach/iproc_regs.h b/arch/arm/mach-iproc/include/mach/iproc_regs.h
+index 460c436..50ea557 100644
+--- a/arch/arm/mach-iproc/include/mach/iproc_regs.h
++++ b/arch/arm/mach-iproc/include/mach/iproc_regs.h
+@@ -364,7 +364,11 @@
+ #define IPROC_GMAC3_INT				182
+ #elif (defined(CONFIG_MACH_HX4) || defined(CONFIG_MACH_KT2) || defined(CONFIG_MACH_DNI_3448P) || \
+ 			defined(CONFIG_MACH_ACCTON_AS4610_54))
++#if defined(CONFIG_MACH_AGEMA_AG6248C)
++#define IPROC_NUM_GMACS				1
++#else
+ #define IPROC_NUM_GMACS				2
++#endif
+ #define IPROC_GMAC0_REG_BASE		  (GMAC0_DEVCONTROL) //(0x18022000)
+ #define IPROC_GMAC1_REG_BASE		  (GMAC1_DEVCONTROL) //(0x18023000)
+ #define IPROC_GMAC2_REG_BASE		  (0) // n/a
+diff --git a/debian/config/armel/uImage-arm.its b/debian/config/armel/uImage-arm.its
+index ccc71d4..048ed1b 100644
+--- a/debian/config/armel/uImage-arm.its
++++ b/debian/config/armel/uImage-arm.its
+@@ -58,6 +58,17 @@
+ 				algo = "crc32";
+ 			};
+ 		};
++		agema_ag6248c_poe_dtb {
++			description = "agema_ag6248c_poe.dtb";
++			data = /incbin/("../dtb/agema_ag6248c_poe.dtb");
++			type = "flat_dt";
++			arch = "arm";
++			os = "linux";
++			compression = "none";
++			hash@1 {
++				algo = "crc32";
++			};
++		};
+ 	};
+ 
+ 	configurations {
+@@ -71,5 +82,10 @@
+ 			kernel = "kernel";
+ 			fdt = "accton_as4610_54_dtb";
+ 		};
++		agema_ag6248c_poe {
++			description = "Agema AG6248C-POE";
++			kernel = "kernel";
++			fdt = "agema_ag6248c_poe_dtb";
++		};
+ 	};
+ };
+diff --git a/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c b/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c
+index d5b400d..bd8eb41 100644
+--- a/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c
++++ b/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c
+@@ -17,6 +17,9 @@
+  *
+  * $Id: nvramstubs.c 325991 2012-04-05 10:16:42Z $
+  */
++#if defined(CONFIG_MACH_AGEMA_AG6248C)
++#define FAKE_NVRAM     1
++#endif
+ 
+ #include <bcm_cfg.h>
+ #include <typedefs.h>
+@@ -66,7 +69,12 @@ static nvram_t fake_nvram[] = {
+ 	{"sdram_config",	"0x103"},
+ 	{"swgmacet",		"et2"},
+ 	{"brcmtag",			"1"},
+-	//{"ethaddr",			"00:90:4c:06:a5:72"},
++#if defined(CONFIG_MACH_AGEMA_AG6248C)
++	{"ethaddr",			"00:90:4c:06:a5:72"},
++	{"ethtool",                     "1"},
++#else
++	//{"ethaddr",                   "00:90:4c:06:a5:72"},
++#endif
+ #ifdef FOUR_PORT_CONFIG
+ 	{"vlan1hwname",		"et2"},
+ 	{"vlan1ports",		"0 1 2 8*"},
+-- 
+2.1.4
+
