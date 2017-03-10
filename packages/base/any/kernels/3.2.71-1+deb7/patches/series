@@ -2,3 +2,4 @@ prepare.sh
 kernel-3.2.71.patch
 platform-accton-as4610-device-drivers.patch
 support-agema-ag6248c-to-boot.patch
+platform-agema-ag6248c-dts-nvram.patch

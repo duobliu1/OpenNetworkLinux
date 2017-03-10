@@ -1,0 +1,184 @@
+diff --git a/arch/arm/boot/dts/agema_ag6248c_poe.dts b/arch/arm/boot/dts/agema_ag6248c_poe.dts
+old mode 100644
+new mode 100755
+index 4cb361c..f86c35b
+--- a/arch/arm/boot/dts/agema_ag6248c_poe.dts
++++ b/arch/arm/boot/dts/agema_ag6248c_poe.dts
+@@ -18,7 +18,7 @@
+ 
+     aliases {
+         serial0 = &uart0;
+-        i2c-controller0 = &i2c0;
++		i2c-controller0 = &i2c0;
+         i2c-controller1 = &i2c1;
+     };
+ 
+@@ -44,64 +44,12 @@
+         };
+     };
+ 
+-    localbus@1c000000 {
+-        #address-cells = <0x2>;
++    localbus@1e000000{
++        address-cells = <0x2>;
+         #size-cells = <0x1>;
+-        /* NAND Flash */
+-        ranges = <
+-            0x0 0x0 0x0 0x1c000000 0x00120000
+-            0x1 0x0 0x0 0x1c120000 0x00040000
+-        >;
+-
+-        flash@0,0 {
+-            #address-cells = <1>;
+-            #size-cells = <1>;
+-            compatible = "cfi-flash";
+-            reg = <0x0 0x0 0x02000000>;
+-            byteswap;
+-
+-            partition@0 {
+-                /* uboot */
+-                reg = <0x00000000 0x00100000>;
+-                label = "uboot";
+-            };
+-            partition@1 {
+-                /* uboot-env */
+-                reg = <0x00100000 0x00100000>;
+-                label = "uboot-env";
+-                env_size = <0x2000>;
+-            };
+-            partition@2 {
+-                /* board_eeprom */
+-                reg = <0x00200000 0x00100000>;
+-                label = "board_eeprom";
+-            };
+-            partition@3 {
+-                /* shmoo */
+-                reg = <0x00300000 0x00100000>;
+-                label = "shmoo";
+-            };
+-            partition@4 {
+-                /* onie */
+-                reg = <0x00400000 0x00800000>;
+-                label = "onie";
+-            };
+-            partition@5 {
+-                /* open */
+-                reg = <0x00c00000 0x03c00000>;
+-                label = "open";
+-            };
+-            partition@6 {
+-                /* open2 */
+-                reg = <0x04800000 0x7d000000>;
+-                label = "open2";
+-            };
+-            partition@7 {
+-                /* diag */
+-                reg = <0xfec00000 0x01000000>;
+-                label = "diag";
+-            };
+-        };
++        compatible = "simple-bus";
++        ranges = <0x0 0x0 0x1e000000 0x02000000>;
++       
+     };
+ 
+     i2c0: i2c@18038000 {
+@@ -111,14 +59,12 @@
+         #size-cells = <0>;
+         interrupts = < 127 >;
+         clock-frequency = <400000>;
+-        cpld@1,0 {
+-            #address-cells = <1>;
+-            #size-cells = <1>;
+-            compatible = "agema,ag6248c_poe_cpld";
+-            label = "cpld";
+-            reg = <0x30>;
++        rtc@68 {
++            compatible = "m41st85";
++            reg = <0x68>;
+         };
+-    };
++	};
++
+ 
+     i2c1: i2c@1803b000 {
+         compatible = "iproc-smb";
+@@ -127,13 +73,6 @@
+         #size-cells = <0>;
+         interrupts = < 128 >;
+         clock-frequency = <100000>;
+-        mux@70 {
+-            compatible = "ti,pca9548";
+-            reg = <0x70>;
+-            #address-cells = <1>;
+-            #size-cells = <0>;
+-            deselect-on-exit;
+-
+-        };
+-    };
++        
++	};
+ };
+diff --git a/arch/arm/mach-iproc/common.c b/arch/arm/mach-iproc/common.c
+index 24b07fb..1b47d6a 100644
+--- a/arch/arm/mach-iproc/common.c
++++ b/arch/arm/mach-iproc/common.c
+@@ -213,7 +213,7 @@ int brcm_get_hx4_model(void)
+ 		return HX4_DNI_3448P;
+ 	else if (!strcmp(model, "accton,as4610_54"))
+ 		return HX4_ACCTON_AS4610_54;
+-	else if (!strcmp(model, "accton,ag6248c_poe"))
++	else if (!strcmp(model, "agema,ag6248c_poe"))
+ 		return HX4_AGEMA_AG6248C_POE;
+ 
+ 	printk( KERN_ERR "Unknown Model %s\n", model );
+diff --git a/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c b/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c
+index bd8eb41..98a77b7 100644
+--- a/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c
++++ b/drivers/bcmdrivers/gmac/src/shared/nvramstubs.c
+@@ -17,9 +17,6 @@
+  *
+  * $Id: nvramstubs.c 325991 2012-04-05 10:16:42Z $
+  */
+-#if defined(CONFIG_MACH_AGEMA_AG6248C)
+-#define FAKE_NVRAM     1
+-#endif
+ 
+ #include <bcm_cfg.h>
+ #include <typedefs.h>
+@@ -69,12 +66,7 @@ static nvram_t fake_nvram[] = {
+ 	{"sdram_config",	"0x103"},
+ 	{"swgmacet",		"et2"},
+ 	{"brcmtag",			"1"},
+-#if defined(CONFIG_MACH_AGEMA_AG6248C)
+-	{"ethaddr",			"00:90:4c:06:a5:72"},
+-	{"ethtool",                     "1"},
+-#else
+ 	//{"ethaddr",                   "00:90:4c:06:a5:72"},
+-#endif
+ #ifdef FOUR_PORT_CONFIG
+ 	{"vlan1hwname",		"et2"},
+ 	{"vlan1ports",		"0 1 2 8*"},
+@@ -151,7 +143,8 @@ __setup("envaddr=", envaddr_setup);
+ enum {
+ 	HX4_NONE = 0,
+ 	HX4_DNI_3448P,
+-	HX4_ACCTON_AS4610_54
++	HX4_ACCTON_AS4610_54,
++    HX4_AGEMA_AG6248C_POE
+ };
+ 
+ static void
+@@ -166,6 +159,9 @@ setup_uboot_vars(void) {
+ 	} else if (modelnum == HX4_ACCTON_AS4610_54) {
+ 		env_offset = 0x000f0000;
+ 		uboot_vars_start = CONFIG_SPI_BASE + env_offset;
++	} else if (modelnum == HX4_AGEMA_AG6248C_POE) {
++		env_offset = 0x00300000;
++		uboot_vars_start = CONFIG_NAND_BASE + env_offset;
+ 	}
+ }
+ 
+-- 
+2.1.4
+
