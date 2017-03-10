@@ -17,10 +17,10 @@ arm-agema-ag6248c-poe-r0:
       <<: *arm-itb
 
   loader:
-    device: /dev/sda
+    device: /dev/mtdblock4
     ##partition: /dev/sda1
     loadaddr: 0x70000000
-    nos_bootcmds: *usb2_bootcmds
+    nos_bootcmds: *flash_bootcmds
 
     environment:
     - device: /dev/mtd2
@@ -28,3 +28,16 @@ arm-agema-ag6248c-poe-r0:
       env_size: 0x00002000
       sector_size: 0x00010000
     
+  installer:
+  - ONL-BOOT:
+      =: 128MiB
+      format: ubifs
+  - ONL-CONFIG:
+      =: 128MiB
+      format: ubifs
+  - ONL-IMAGES:
+      =: 1024MiB
+      format: ubifs
+  - ONL-DATA:
+      =: 2048MiB
+      format: ubifs
