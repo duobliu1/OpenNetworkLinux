@@ -152,8 +152,12 @@ class OnlMountManager(object):
             t = timeout
             while t >= 0:
                 try:
-                    v['device'] = subprocess.check_output("blkid -L %s" % k, shell=True).strip()
-                    if 'device' in v: break
+                    useUbiDev = False
+                    try:
+                        v['device'] = subprocess.check_output("blkid -L %s" % k, shell=True).strip()
+                    except subprocess.CalledProcessError:
+                        useUbiDev = True
+                    if useUbiDev == False: break
                     output  = subprocess.check_output("ubinfo -d 0 -N %s" % k, shell=True).splitlines()
                     volumeId = None
                     device = None
