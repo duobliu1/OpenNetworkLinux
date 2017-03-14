@@ -119,16 +119,18 @@ onlp_thermali_info_get(onlp_oid_t id, onlp_thermal_info_t* info)
     VALIDATE(id);
 
     local_id = ONLP_OID_ID_GET(id);
+    
     DEBUG_PRINT("\n[Debug][%s][%d][local_id: %d]", __FUNCTION__, __LINE__, local_id);
 
     /* Set the onlp_oid_hdr_t and capabilities */
     *info = linfo[local_id];
-
     /* get fullpath */
     sprintf(fullpath, "%s%s", prefix_path, last_path[local_id]);
 
     OPEN_READ_FILE(fd, fullpath, r_data, nbytes, len);
+    
     info->mcelsius = atoi(r_data) / temp_base;
+    
     DEBUG_PRINT("\n[Debug][%s][%d][save data: %d]\n", __FUNCTION__, __LINE__, info->mcelsius);
 
     return ONLP_STATUS_OK;

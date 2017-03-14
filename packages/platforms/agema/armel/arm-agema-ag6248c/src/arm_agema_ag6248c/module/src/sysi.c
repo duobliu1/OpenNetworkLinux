@@ -41,7 +41,6 @@
 platform_id_t platform_id = PLATFORM_ID_UNKNOWN;
 
 #define ONIE_PLATFORM_NAME "arm-agema-ag6248c-poe-r0"
-
 const char*
 onlp_sysi_platform_get(void)
 { 
@@ -49,7 +48,7 @@ onlp_sysi_platform_get(void)
 	
 	if (pid == PID_AG6248C_48)
 		return "arm-agema-ag6248c";
-	else if(pid == PID_AG6248C_48P)
+    else if(pid == PID_AG6248C_48P)
 		return "arm-agema-ag6248c-poe";
 	else 
 		return "unknow";
@@ -153,50 +152,48 @@ onlp_sysi_oids_get(onlp_oid_t* table, int max)
 int
 onlp_sysi_platform_manage_fans(void)
 { 
-    int rc,oldP, newP = 0;
-    onlp_thermal_info_t ti;
-    onlp_fan_info_t info;
+
+    int rc;
+    onlp_thermal_info_t ti1;
+    onlp_thermal_info_t ti2;
+    int mtemp=0;
+    int new_rpm=0;
 
     if (chassis_fan_count() == 0) {
         return ONLP_STATUS_E_UNSUPPORTED;
     }
-
-    /* Get fan duty cycle */
-	rc=onlp_fani_info_get(ONLP_FAN_ID_CREATE(1), &info);
-	
-	if(rc != ONLP_STATUS_OK)
-		return rc;
-	
-	oldP = info.percentage;
-
-    DEBUG_PRINT("[Debug][%s][%d][read data: %s]\n", __FUNCTION__, __LINE__, oldP);
   
     /* Get temperature */
-    rc = onlp_thermali_info_get(ONLP_THERMAL_ID_CREATE(1), &ti);
+    rc = onlp_thermali_info_get(ONLP_THERMAL_ID_CREATE(1), &ti1);
 	
     if (rc != ONLP_STATUS_OK) {
         return rc;
     }
-    /* Bring fan speed to high if current speed is unexpected
+        
+    rc = onlp_thermali_info_get(ONLP_THERMAL_ID_CREATE(2), &ti2);
+	
+    if (rc != ONLP_STATUS_OK) {
+        return rc;
+    }
+             
+    mtemp=(ti1.mcelsius+ti2.mcelsius)/2;
+    /* Bring fan speed according the temp
      */
-    if (oldP != FAN_PERCENTAGE_LOW && oldP != FAN_PERCENTAGE_HIGH) {
-        onlp_fani_percentage_set(ONLP_FAN_ID_CREATE(1), FAN_PERCENTAGE_HIGH);
-		return ONLP_STATUS_OK;
-    }
-
-    if (oldP == FAN_PERCENTAGE_LOW && ti.mcelsius >= 61000) {
-        newP = FAN_PERCENTAGE_HIGH;
-
-    }
-    else if (oldP == FAN_PERCENTAGE_HIGH && ti.mcelsius <= 49000) {
-        newP = FAN_PERCENTAGE_LOW;
-    }
-
-    if (newP) {
-        onlp_fani_percentage_set(ONLP_FAN_ID_CREATE(1), newP);
-
-    }
-
+    if(mtemp<50000)
+        new_rpm=FAN_IDLE_RPM;
+    else if((mtemp>=55000)&&(mtemp<60000))
+        new_rpm=FAN_LEVEL1_RPM;
+    else if((mtemp>=65000)&&(mtemp<70000))
+        new_rpm=FAN_LEVEL2_RPM;
+    else if(mtemp>=75000)
+        new_rpm=FAN_LEVEL3_RPM;
+    else{
+        return ONLP_STATUS_OK;
+   }
+       
+    onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(1),new_rpm);
+    onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(2),new_rpm); 
+     
     return ONLP_STATUS_OK;
 }
 
@@ -204,7 +201,7 @@ onlp_sysi_platform_manage_fans(void)
 int
 onlp_sysi_platform_manage_leds(void)
 { 
-		int rc;
+		int rc,rc1;
 		
 		onlp_fan_info_t info1,info2;
 		onlp_led_mode_t fan_new_mode;
@@ -217,21 +214,18 @@ onlp_sysi_platform_manage_leds(void)
 		onlp_led_mode_t sys_new_mode;
 		/*fan led */
 		rc=onlp_fani_info_get(ONLP_FAN_ID_CREATE(1), &info1);
-		if (rc != ONLP_STATUS_OK) {
-			fan_new_mode=ONLP_LED_MODE_OFF;
-			goto temp_led;
-		}
-		rc=onlp_fani_info_get(ONLP_FAN_ID_CREATE(2), &info2);
-		if (rc != ONLP_STATUS_OK) {
-			fan_new_mode=ONLP_LED_MODE_OFF;
-			goto temp_led;
-		}
-		if(((info1.status&0x1)==0)&&((info2.status&0x1)==0))
-			fan_new_mode=ONLP_LED_MODE_OFF;
-		else if((info1.status&0x2)||(info2.status&0x2))
+        
+        rc1=onlp_fani_info_get(ONLP_FAN_ID_CREATE(2), &info2);
+        
+		if ((rc != ONLP_STATUS_OK)||(rc1 != ONLP_STATUS_OK)){
 			fan_new_mode=ONLP_LED_MODE_RED;
-		else
+			goto temp_led;
+		}
+		if(((info1.status&0x3)==1)&&((info2.status&0x3)==1))
 			fan_new_mode=ONLP_LED_MODE_GREEN;
+		else 
+			fan_new_mode=ONLP_LED_MODE_RED;
+       
 temp_led:		
 		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_FAN),fan_new_mode);
 		
@@ -242,10 +236,11 @@ temp_led:
 			temp_new_mode=ONLP_LED_MODE_OFF;
 			goto psu1_led;
 		}
-		if(ti.mcelsius >= 80000)
+		if(ti.mcelsius >= 75000)
 			temp_new_mode=ONLP_LED_MODE_RED;
 		else
 			temp_new_mode=ONLP_LED_MODE_GREEN;
+         
 psu1_led:		
 		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_TEMP),temp_new_mode);
 		

@@ -54,7 +54,7 @@ enum ag6248c_product_id get_product_id(void)
 	pid = ((ret&0xf0)>>4);
     
 	
-    if (pid >= PID_UNKNOWN || pid < PID_AG6248C_24 || pid == PID_RESERVED) {
+    if (pid >= PID_UNKNOWN || pid < PID_AG6248C_48) {
         return PID_UNKNOWN;
     }
 

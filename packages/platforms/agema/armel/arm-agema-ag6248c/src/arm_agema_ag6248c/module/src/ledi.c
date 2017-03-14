@@ -306,9 +306,9 @@ onlp_ledi_mode_set(onlp_oid_t id, onlp_led_mode_t mode)
 		driver_mode=(driver_mode<<CPLD_LED_MODE_MASTER_REG_OFFSET);
 	else
 		driver_mode=(driver_mode<<CPLD_LED_MODE_REG_OFFSET(lid));
-	
+
 	driver_mode=driver_mode| r_data;
-	
+
 	if((lid==LED_TEMP)||(lid==LED_MASTER))
 		rc=i2c_devname_write_byte("CPLD", CPLD_LED_MODE_TEMP_REG, driver_mode);
 	else

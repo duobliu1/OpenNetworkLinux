@@ -53,21 +53,15 @@ psu_type_t get_psu_type(int id);
 
 enum onlp_fan_duty_cycle_percentage
 {
-    FAN_PERCENTAGE_LOW  = 13,
-    FAN_PERCENTAGE_HIGH = 75
+    FAN_IDLE_RPM    = 5500,
+	FAN_LEVEL1_RPM  = 7000,
+	FAN_LEVEL2_RPM  = 9000,
+	FAN_LEVEL3_RPM  = 12000,
 };
 
 enum ag6248c_product_id {
-	PID_AG6248C_24 = 1,
-	PID_AG6248C_48,
-	PID_AG6248C_24P,
-	PID_AG6248C_48P,
-	PID_AG6248C_24F,
-	PID_RESERVED,
-	PID_AN6248C_24= 9,
-	PID_AN6248C_48,
-	PID_AN6248C_24P,
-	PID_AN6248C_48P,
+	PID_AG6248C_48= 2,
+	PID_AG6248C_48P=4,
 	PID_UNKNOWN
 };
 /* LED related data */

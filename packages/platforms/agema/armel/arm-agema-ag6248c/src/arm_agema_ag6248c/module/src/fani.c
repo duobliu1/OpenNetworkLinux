@@ -45,8 +45,9 @@
 /*define the reg bit mask*/
 #define MAX6639_REG_FAN_STATUS_BIT(ch)  (0X02>>(ch-1))
 #define MAX6639_FAN_CONFIG1_RPM_RANGE    0x03
-
-
+#define MAX6639_FAN_PRESENT_REG         (0x0c) 
+#define MAX6639_FAN_PRESENT_BIT         (0x2)
+#define MAX6639_FAN_GOOD_BIT            (0x1)
 #define FAN_FROM_REG(val)	((480000.0) / (val))
 
 static int fan_initd=0;
@@ -134,52 +135,76 @@ _onlp_fan_board_init(void)
 static int
 _onlp_fani_info_get_fan(int local_id, onlp_fan_info_t* info)
 {
-    int   r_data,fan_good;
+    int   r_data,fan_good,fan_present,fan_fault;
 	
     /* init the fan on the board*/
 	if(fan_initd==0)
 		_onlp_fan_board_init();
     /* get fan fault status (turn on when any one fails)*/
-	
-    r_data = i2c_devname_read_byte("FAN_ON_BOARD", MAX6639_REG_STATUS);
-	
-	if(r_data<0)
+	r_data= i2c_devname_read_byte("CPLD",MAX6639_FAN_PRESENT_REG);
+    
+  	if(r_data<0)
 		return ONLP_STATUS_E_INVALID;
-   
-    fan_good=~(r_data & MAX6639_REG_FAN_STATUS_BIT(local_id));
-		
-	if(fan_good)
-		info->status = ONLP_FAN_STATUS_PRESENT;
-	else{ 
-		info->status = ONLP_FAN_STATUS_FAILED;
-		return ONLP_STATUS_OK;
-	}
-     
-	
+    
+    fan_present = r_data & MAX6639_FAN_PRESENT_BIT;
+    
+    if(!fan_present){
+        
+        info->status |= ONLP_FAN_STATUS_PRESENT;
+        
+        fan_good=r_data&MAX6639_FAN_GOOD_BIT;
+        
+        if(fan_good)
+            info->status&=~ONLP_FAN_STATUS_FAILED;
+        else{
+            r_data = i2c_devname_read_byte("FAN_ON_BOARD", MAX6639_REG_STATUS);
+        
+            if(r_data<0)
+                return ONLP_STATUS_E_INVALID;
+       
+            fan_fault=r_data & MAX6639_REG_FAN_STATUS_BIT(local_id);
+            
+            if(!fan_fault)
+                info->status &=~ ONLP_FAN_STATUS_FAILED;
+            else{ 
+                info->status |=ONLP_FAN_STATUS_FAILED;
+                info->rpm=0;
+                info->percentage=0;
+                goto mode;
+            }
+        }
+    }
+    else{
+        info->status &= ~ONLP_FAN_STATUS_PRESENT;
+        return ONLP_STATUS_E_UNSUPPORTED;
+    }
+    
     /* get fan speed */
     r_data = i2c_devname_read_byte("FAN_ON_BOARD", MAX6639_REG_FAN_CNT(local_id));
-	
-	if(r_data<0)
-		return ONLP_STATUS_E_INVALID;
-	
-	info->rpm = FAN_FROM_REG(r_data);
+
+    if(r_data<0)
+            return ONLP_STATUS_E_INVALID;
+
+    info->rpm = FAN_FROM_REG(r_data);
     
     /* get speed percentage from rpm */
-    info->percentage = (info->rpm * 100) / MAX_FAN_SPEED;
-	
+    info->percentage = (info->rpm * 100.0) / MAX_FAN_SPEED;
+    
+mode:	
 	if(info->percentage>100)
 		strcpy(info->model,"ONLP_FAN_MODE_LAST");
 	else if(info->percentage==100)
 		strcpy(info->model,"ONLP_FAN_MODE_MAX");
 	else if(info->percentage>=75&&info->percentage<100)
 		strcpy(info->model,"ONLP_FAN_MODE_FAST");
-	else if(info->percentage>=15&&info->percentage<75)
+	else if(info->percentage>=35&&info->percentage<75)
 		strcpy(info->model,"ONLP_FAN_MODE_NORMAL");
-	else if(info->percentage>0&&info->percentage<15)
+	else if(info->percentage>0&&info->percentage<35)
 		strcpy(info->model,"ONLP_FAN_MODE_SLOW");
 	else if(info->percentage<=0)
 		strcpy(info->model,"ONLP_FAN_MODE_OFF");
-	
+	else{ }
+
     return ONLP_STATUS_OK;
 }
 
@@ -233,7 +258,7 @@ _onlp_fani_info_get_fan_on_psu(int local_id, onlp_fan_info_t* info)
     info->rpm = fan_rpm;
 
     /* get speed percentage from rpm */
-    info->percentage = (info->rpm * 100) / MAX_PSU_FAN_SPEED;
+    info->percentage = (info->rpm * 100.0) / MAX_PSU_FAN_SPEED;
 	
 	if(info->percentage>100)
 		strcpy(info->model,"ONLP_FAN_MODE_LAST");
@@ -241,12 +266,13 @@ _onlp_fani_info_get_fan_on_psu(int local_id, onlp_fan_info_t* info)
 		strcpy(info->model,"ONLP_FAN_MODE_MAX");
 	else if(info->percentage>=75&&info->percentage<100)
 		strcpy(info->model,"ONLP_FAN_MODE_FAST");
-	else if(info->percentage>=15&&info->percentage<75)
+	else if(info->percentage>=35&&info->percentage<75)
 		strcpy(info->model,"ONLP_FAN_MODE_NORMAL");
-	else if(info->percentage>0&&info->percentage<15)
+	else if(info->percentage>0&&info->percentage<35)
 		strcpy(info->model,"ONLP_FAN_MODE_SLOW");
 	else if(info->percentage<=0)
 		strcpy(info->model,"ONLP_FAN_MODE_OFF");
+    else{}
 
     return ONLP_STATUS_OK;
 }
@@ -258,7 +284,7 @@ int
 onlp_fani_init(void)
 {	
 	int rc;
-	rc=_onlp_fan_board_init();
+   	rc=_onlp_fan_board_init();
     return rc;
 }
 
@@ -316,7 +342,7 @@ onlp_fani_rpm_set(onlp_oid_t id, int rpm)
 	VALIDATE(id);
 	
 	local_id = ONLP_OID_ID_GET(id);
-	
+
 	if((local_id==FAN_1_ON_PSU1)||(local_id==FAN_1_ON_PSU2))
 		return ONLP_STATUS_E_UNSUPPORTED;
 	
@@ -326,19 +352,20 @@ onlp_fani_rpm_set(onlp_oid_t id, int rpm)
 	   /* init the fan on the board*/
 	if(fan_initd==0)
 		_onlp_fan_board_init();
-	
+
 	/* reject rpm=0 (rpm=0, stop fan) */
 	if (actual_rpm == 0)
         return ONLP_STATUS_E_INVALID;    
 
 	/*get ret value for the speed set*/
 	fan_set_rpm_cont=FAN_FROM_REG(actual_rpm);
+
 	/*set the rpm speed */
 	rc=i2c_devname_write_byte("FAN_ON_BOARD", MAX6639_REG_TARGET_CNT(local_id), fan_set_rpm_cont);
 	
 	if(rc<0)
 		return ONLP_STATUS_E_INVALID;
-	
+
     return ONLP_STATUS_OK;
 }
 /*set the percentage for the psu fan*/
@@ -388,14 +415,12 @@ onlp_fani_percentage_set(onlp_oid_t id, int p)
 		
 	/*set the rpm speed */
 	rc=i2c_devname_write_byte("FAN_ON_BOARD", MAX6639_REG_TARGET_CNT(id), fan_set_rpm_cont);
-	printf("the rc is %d\n",rc);
+	
 	if(rc<0)
 		return ONLP_STATUS_E_INVALID;
 	
     return ONLP_STATUS_OK;
 	
-	
-   
   
 }
 
