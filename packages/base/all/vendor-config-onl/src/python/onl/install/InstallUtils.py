@@ -392,8 +392,11 @@ class UbinfoParser(SubprocessMixin):
 
     def parse(self):
         self.parts = []
-        cmd = ('ubinfo', '-a',)
-        lines = self.check_output(cmd).splitlines()
+        try:
+            cmd = ('ubinfo', '-a',)
+            lines = self.check_output(cmd).splitlines()
+        finally:
+            return self
 
         dev = None
         volId = None

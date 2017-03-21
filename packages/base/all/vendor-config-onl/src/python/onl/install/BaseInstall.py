@@ -1091,9 +1091,8 @@ class UbootInstaller(SubprocessMixin, Base):
 
             cmd = ('umount', dstDir)
             self.check_call(cmd, vmode=self.V2)
+            return 0
 
-	    return code
-	
         code = self.maybeCreateLabel()
         if code: return code
 
