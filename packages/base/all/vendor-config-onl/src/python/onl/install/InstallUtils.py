@@ -392,10 +392,11 @@ class UbinfoParser(SubprocessMixin):
 
     def parse(self):
         self.parts = []
+        lines = ''
         try:
             cmd = ('ubinfo', '-a',)
             lines = self.check_output(cmd).splitlines()
-        finally:
+        except OSError as ex:
             return self
 
         dev = None
