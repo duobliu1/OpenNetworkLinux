@@ -47,6 +47,11 @@
 
 #define CPLD_LED_REG_BITS                   (0X3) //the reg bits
 
+#define CPLD_LED_FAN_TRAY_REG               (0X8)
+#define CPLD_LED_FAN_TRAY0_REG_OFFSET       (0X0)
+#define CPLD_LED_FAN_TRAY1_REG_OFFSET       (0X2)
+#define CPLD_LED_FAN_TRAY2_REG_OFFSET       (0X4)
+
 #define CPLD_LED_POWER_REG                  (0X6)
 #define CPLD_LED_POWER_REG_OFFSET           (0X6)
 
@@ -73,29 +78,16 @@ static onlp_led_info_t linfo[] =
 	
 	{
         { ONLP_LED_ID_CREATE(LED_FAN), "fan", 0 },
-        ONLP_LED_STATUS_PRESENT,  ONLP_LED_CAPS_ON_OFF |
+        ONLP_LED_STATUS_PRESENT, 
+        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_YELLOW_BLINKING | 
 		ONLP_LED_CAPS_GREEN | ONLP_LED_CAPS_YELLOW,
     },
-	/*
-    {
-        { ONLP_LED_ID_CREATE(LED_PSU2), "psu2", 0 },
-        ONLP_LED_STATUS_PRESENT,
-        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_YELLOW_BLINKING | 
-        ONLP_LED_CAPS_GREEN | ONLP_LED_CAPS_YELLOW ,
-    },
-	
-    {
-        { ONLP_LED_ID_CREATE(LED_PSU1), "psu1", 0 },
-        ONLP_LED_STATUS_PRESENT, 
-		ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_YELLOW_BLINKING | 
-        ONLP_LED_CAPS_GREEN | ONLP_LED_CAPS_YELLOW ,
-    },*/
   
     {
         { ONLP_LED_ID_CREATE(LED_LOCATOR), "locator", 0 },
         ONLP_LED_STATUS_PRESENT,
-        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_BLUE | 
-        ONLP_LED_CAPS_BLUE_BLINKING ,
+        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_GREEN | 
+        ONLP_LED_CAPS_GREEN_BLINKING ,
     },
 	
 	{
@@ -103,6 +95,24 @@ static onlp_led_info_t linfo[] =
         ONLP_LED_STATUS_PRESENT,
         ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_GREEN | 
         ONLP_LED_CAPS_YELLOW_BLINKING,
+    },
+    {
+        { ONLP_LED_ID_CREATE(LED_FAN_TRAY0), "fan_tray0", 0 },
+        ONLP_LED_STATUS_PRESENT,
+        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_GREEN | 
+        ONLP_LED_CAPS_YELLOW,
+    },
+    {
+        { ONLP_LED_ID_CREATE(LED_FAN_TRAY1), "fan_tray1", 0 },
+        ONLP_LED_STATUS_PRESENT,
+        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_GREEN | 
+        ONLP_LED_CAPS_YELLOW,
+    },
+    {
+        { ONLP_LED_ID_CREATE(LED_FAN_TRAY2), "fan_tray2", 0 },
+        ONLP_LED_STATUS_PRESENT,
+        ONLP_LED_CAPS_ON_OFF | ONLP_LED_CAPS_GREEN | 
+        ONLP_LED_CAPS_YELLOW,
     },
 };
 
@@ -117,37 +127,37 @@ static int conver_led_light_mode_to_onl(uint32_t id, int led_ligth_mode)
         case SYS_LED_MODE_YELLOW_BLINKING:     return ONLP_LED_MODE_YELLOW_BLINKING;
         default:                           	   return ONLP_LED_MODE_GREEN_BLINKING;
         }
-    /*case LED_PSU1:
-    case LED_PSU2:
-		switch (led_ligth_mode) {
-        case PSU_LED_MODE_OFF:                 return ONLP_LED_MODE_OFF;
-        case PSU_LED_MODE_GREEN:               return ONLP_LED_MODE_GREEN;
-        case PSU_LED_MODE_YELLOW:               return ONLP_LED_MODE_YELLOW;
-        case PSU_LED_MODE_YELLOW_BLINKING:      return ONLP_LED_MODE_YELLOW_BLINKING;
-        default:                           	   return ONLP_LED_MODE_OFF;
-        }*/
+
     case LED_FAN:
 	    switch (led_ligth_mode) {
-		case FAN_LED_MODE_OFF:				   return ONLP_LED_MODE_OFF;
-        case FAN_LED_MODE_GREEN:               return ONLP_LED_MODE_GREEN;
+        case FAN_LED_MODE_OFF:                 return ONLP_LED_MODE_OFF;
+		case FAN_LED_MODE_GREEN:               return ONLP_LED_MODE_GREEN;
         case FAN_LED_MODE_YELLOW:     		   return ONLP_LED_MODE_YELLOW;
         case FAN_LED_MODE_YELLOW_BLINKING:     return ONLP_LED_MODE_YELLOW_BLINKING;
         default:                               return ONLP_LED_MODE_OFF;
         }
     case LED_LOCATOR:
         switch (led_ligth_mode) {
-        case LOCATOR_LED_MODE_OFF:                return ONLP_LED_MODE_OFF;
-        case LOCATOR_LED_MODE_BLUE:               return ONLP_LED_MODE_BLUE;
-        case LOCATOR_LED_MODE_BLUE_BLINKING:      return ONLP_LED_MODE_BLUE_BLINKING;
-        default:                                  return ONLP_LED_MODE_OFF;
+        case LOCATOR_LED_MODE_OFF:             return ONLP_LED_MODE_OFF;
+        case LOCATOR_LED_MODE_GREEN:           return ONLP_LED_MODE_GREEN;
+        case LOCATOR_LED_MODE_GREEN_BLINKING:  return ONLP_LED_MODE_GREEN_BLINKING;
+        default:                               return ONLP_LED_MODE_OFF;
         }
 	case LED_POWER:
         switch (led_ligth_mode) {
-        case POWER_LED_MODE_OFF:              return ONLP_LED_MODE_OFF;
-        case POWER_LED_MODE_YELLOW:           return ONLP_LED_MODE_YELLOW;
-        case POWER_LED_MODE_GREEN:            return ONLP_LED_MODE_GREEN;
-        case POWER_LED_MODE_YELLOW_BLINKING:  return ONLP_LED_MODE_YELLOW_BLINKING;
+        case POWER_LED_MODE_OFF:               return ONLP_LED_MODE_OFF;
+        case POWER_LED_MODE_GREEN:             return ONLP_LED_MODE_GREEN;
+        case POWER_LED_MODE_YELLOW_BLINKING:   return ONLP_LED_MODE_YELLOW_BLINKING;
         default:                               return ONLP_LED_MODE_OFF;
+        }
+    case LED_FAN_TRAY0:
+    case LED_FAN_TRAY1:
+    case LED_FAN_TRAY2:
+        switch (led_ligth_mode) {
+        case FAN_TRAY_LED_MODE_OFF:             return ONLP_LED_MODE_OFF;
+        case FAN_TRAY_LED_MODE_GREEN:           return ONLP_LED_MODE_GREEN;
+        case FAN_TRAY_LED_MODE_YELLOW:          return ONLP_LED_MODE_YELLOW_BLINKING;
+        default:                                return ONLP_LED_MODE_OFF;
         }
     }
 
@@ -165,39 +175,38 @@ static int conver_onlp_led_light_mode_to_driver(uint32_t id, int led_ligth_mode)
         case ONLP_LED_MODE_YELLOW_BLINKING:     return SYS_LED_MODE_YELLOW_BLINKING;
         default:                           		return SYS_LED_MODE_UNKNOWN;
         }
-    /*case LED_PSU1:
-    case LED_PSU2:
-		switch (led_ligth_mode) {
-        case ONLP_LED_MODE_OFF:                 return PSU_LED_MODE_OFF;
-        case ONLP_LED_MODE_GREEN:               return PSU_LED_MODE_GREEN;
-        case ONLP_LED_MODE_YELLOW:              return PSU_LED_MODE_YELLOW;
-        case ONLP_LED_MODE_YELLOW_BLINKING:     return PSU_LED_MODE_YELLOW_BLINKING;
-        default:                                return PSU_LED_MODE_UNKNOWN;
-        }*/
+
     case LED_FAN:
 	    switch (led_ligth_mode) {
-		case ONLP_LED_MODE_OFF:   			    return FAN_LED_MODE_OFF;	
-        case ONLP_LED_MODE_GREEN:               return FAN_LED_MODE_GREEN ;
+        case ONLP_LED_MODE_OFF:                 return FAN_LED_MODE_OFF;
+		case ONLP_LED_MODE_GREEN:               return FAN_LED_MODE_GREEN ;
         case ONLP_LED_MODE_YELLOW:              return FAN_LED_MODE_YELLOW;
-        case ONLP_LED_MODE_YELLOW_BLINKING:      return FAN_LED_MODE_YELLOW_BLINKING;
+        case ONLP_LED_MODE_YELLOW_BLINKING:     return FAN_LED_MODE_YELLOW_BLINKING;
         default:                                return FAN_LED_MODE_UNKNOWN;
         }
     case LED_LOCATOR:
         switch (led_ligth_mode) {
         case ONLP_LED_MODE_OFF:                 return LOCATOR_LED_MODE_OFF;
-        case ONLP_LED_MODE_BLUE:                return LOCATOR_LED_MODE_BLUE;
-        case ONLP_LED_MODE_BLUE_BLINKING:       return LOCATOR_LED_MODE_BLUE_BLINKING;
+        case ONLP_LED_MODE_GREEN:               return LOCATOR_LED_MODE_GREEN;
+        case ONLP_LED_MODE_GREEN_BLINKING:      return LOCATOR_LED_MODE_GREEN_BLINKING;
         default:                                return LOCATOR_LED_MODE_UNKNOWN;
         }
 	case LED_POWER:
         switch (led_ligth_mode) {
         case ONLP_LED_MODE_OFF:                 return POWER_LED_MODE_OFF;
-        case ONLP_LED_MODE_YELLOW:              return POWER_LED_MODE_YELLOW;
         case ONLP_LED_MODE_GREEN:               return POWER_LED_MODE_GREEN;
         case ONLP_LED_MODE_YELLOW_BLINKING:     return POWER_LED_MODE_YELLOW_BLINKING;
         default:                                return POWER_LED_MODE_UNKNOWN;
         }
-
+	case LED_FAN_TRAY0:
+    case LED_FAN_TRAY1:
+    case LED_FAN_TRAY2:
+        switch (led_ligth_mode) {
+        case ONLP_LED_MODE_OFF:                 return FAN_TRAY_LED_MODE_OFF;
+        case ONLP_LED_MODE_GREEN:               return FAN_TRAY_LED_MODE_GREEN;
+        case ONLP_LED_MODE_YELLOW_BLINKING:     return FAN_TRAY_LED_MODE_YELLOW;
+        default:                                return FAN_TRAY_LED_MODE_UNKNOWN;
+        }
     }
 
 	return ONLP_LED_MODE_OFF;
@@ -225,10 +234,11 @@ onlp_ledi_oid_to_internal_id(onlp_oid_t id)
 	switch (lid) {
 	case 1:	return LED_SYS;
 	case 2: return LED_FAN;
-	/*case 3: return LED_PSU2;
-	case 4: return LED_PSU1;*/
 	case 3: return LED_LOCATOR;
 	case 4: return LED_POWER;
+    case 5: return LED_FAN_TRAY0;
+    case 6: return LED_FAN_TRAY1;
+    case 7: return LED_FAN_TRAY2;
 	}
 
 	return lid;
@@ -275,7 +285,24 @@ onlp_ledi_info_get(onlp_oid_t id, onlp_led_info_t* info)
                 return ONLP_STATUS_E_INTERNAL;
             m_data = (r_data >> CPLD_LED_FAN_REG_OFFSET) & CPLD_LED_REG_BITS;
             break;
-
+        case LED_FAN_TRAY0:
+            r_data = i2c_devname_read_byte(CPLD_NAME2, CPLD_LED_FAN_TRAY_REG);
+            if (r_data < 0)
+                return ONLP_STATUS_E_INTERNAL;
+            m_data = (r_data >> CPLD_LED_FAN_TRAY0_REG_OFFSET) & CPLD_LED_REG_BITS;
+            break;
+        case LED_FAN_TRAY1:
+            r_data = i2c_devname_read_byte(CPLD_NAME2, CPLD_LED_FAN_TRAY_REG);
+            if (r_data < 0)
+                return ONLP_STATUS_E_INTERNAL;
+            m_data = (r_data >> CPLD_LED_FAN_TRAY1_REG_OFFSET) & CPLD_LED_REG_BITS;
+            break;
+        case LED_FAN_TRAY2:
+            r_data = i2c_devname_read_byte(CPLD_NAME2, CPLD_LED_FAN_TRAY_REG);
+            if (r_data < 0)
+                return ONLP_STATUS_E_INTERNAL;
+            m_data = (r_data >> CPLD_LED_FAN_TRAY2_REG_OFFSET) & CPLD_LED_REG_BITS;
+            break;
         default:
             return ONLP_STATUS_E_INTERNAL;
     }
@@ -302,16 +329,15 @@ onlp_ledi_mode_set(onlp_oid_t id, onlp_led_mode_t mode)
 {
     int  r_data,driver_mode, rc;
 	int reg;
-
+    
     int lid = onlp_ledi_oid_to_internal_id(id);
     
     VALIDATE(id);
 
     driver_mode = conver_onlp_led_light_mode_to_driver(lid, mode);
 	
-	if((driver_mode==SYS_LED_MODE_UNKNOWN)||(driver_mode==PSU_LED_MODE_UNKNOWN)||\
-		(driver_mode==FAN_LED_MODE_UNKNOWN)||(driver_mode==POWER_LED_MODE_UNKNOWN)||\
-		(driver_mode==LOCATOR_LED_MODE_UNKNOWN))
+	if((driver_mode==SYS_LED_MODE_UNKNOWN)||(driver_mode==FAN_LED_MODE_UNKNOWN)||\
+       (driver_mode==POWER_LED_MODE_UNKNOWN)||(driver_mode==LOCATOR_LED_MODE_UNKNOWN))
 		return ONLP_STATUS_E_UNSUPPORTED;
 	
     switch (lid)
@@ -348,11 +374,35 @@ onlp_ledi_mode_set(onlp_oid_t id, onlp_led_mode_t mode)
                 return ONLP_STATUS_E_INTERNAL;
             r_data &= ~(CPLD_LED_REG_BITS << CPLD_LED_FAN_REG_OFFSET);
             r_data |= (driver_mode & CPLD_LED_REG_BITS ) << CPLD_LED_FAN_REG_OFFSET;
-
+            break;
+        case LED_FAN_TRAY0:
+            reg = CPLD_LED_FAN_TRAY_REG;
+            r_data = i2c_devname_read_byte(CPLD_NAME2, CPLD_LED_FAN_TRAY_REG);
+            if (r_data < 0)
+                return ONLP_STATUS_E_INTERNAL;
+            r_data &= ~(CPLD_LED_REG_BITS << CPLD_LED_FAN_TRAY0_REG_OFFSET);
+            r_data |= (driver_mode & CPLD_LED_REG_BITS ) << CPLD_LED_FAN_TRAY0_REG_OFFSET;
+            break;
+        case LED_FAN_TRAY1:
+            reg = CPLD_LED_FAN_TRAY_REG;
+            r_data = i2c_devname_read_byte(CPLD_NAME2, CPLD_LED_FAN_TRAY_REG);
+            if (r_data < 0)
+                return ONLP_STATUS_E_INTERNAL;
+            r_data &= ~(CPLD_LED_REG_BITS << CPLD_LED_FAN_TRAY1_REG_OFFSET);
+            r_data |= (driver_mode & CPLD_LED_REG_BITS ) << CPLD_LED_FAN_TRAY1_REG_OFFSET;
+            break;
+        case LED_FAN_TRAY2:
+            reg = CPLD_LED_FAN_TRAY_REG;
+            r_data = i2c_devname_read_byte(CPLD_NAME2, CPLD_LED_FAN_TRAY_REG);
+            if (r_data < 0)
+                return ONLP_STATUS_E_INTERNAL;
+            r_data &= ~(CPLD_LED_REG_BITS << CPLD_LED_FAN_TRAY2_REG_OFFSET);
+            r_data |= (driver_mode & CPLD_LED_REG_BITS ) << CPLD_LED_FAN_TRAY2_REG_OFFSET;
+            break;
         default:
             return ONLP_STATUS_E_INTERNAL;
     }
-
+    
     rc=i2c_devname_write_byte(CPLD_NAME2, reg, r_data);
 	
     if(rc<0){

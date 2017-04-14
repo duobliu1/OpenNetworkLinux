@@ -139,8 +139,15 @@ onlp_fan_info_t linfo[] = {
 
 static int 
 _onlp_get_fan_tray(int fanId)
-{
-    return (fanId - 1) / 2;
+{   
+    int tray_id;
+    if((fanId==5) || (fanId==6))
+        tray_id=0;
+    else if((fanId==3) || (fanId==4))
+        tray_id=1;
+    else
+        tray_id=2;
+    return tray_id;
 }
 #if 0
 static int
@@ -161,28 +168,16 @@ _onlp_fan_board_init(void)
 {
     int i = 0;
     int d1,d2;
-    int rpm = 10000;
-
+    int rpm = 8000;
 	i2c_devname_write_byte("FANCTRL1", 0x00,0x10);
 	i2c_devname_write_byte("FANCTRL2", 0x00,0x10);
 
 	i2c_devname_write_byte("FANCTRL1", 0x01,0x00);
 	i2c_devname_write_byte("FANCTRL2", 0x01,0x00);
 
-    for (i = FAN_1_ON_MAIN_BOARD; i <= FAN_2_ON_MAIN_BOARD; i ++)
+    for (i = FAN_1_ON_MAIN_BOARD; i <= FAN_4_ON_MAIN_BOARD; i ++)
     {
         int offset = i - FAN_1_ON_MAIN_BOARD;
-
-	    i2c_devname_write_byte("FANCTRL1", 0x02 + offset ,0xc0);
-        FAN_TO_REG(rpm);
-
-	    i2c_devname_write_byte("FANCTRL1", 0x20 + 2 * offset, d1);
-	    i2c_devname_write_byte("FANCTRL1", 0x21 + 2 * offset, d2);
-
-    }
-    for (i = FAN_3_ON_MAIN_BOARD; i <= FAN_6_ON_MAIN_BOARD; i ++)
-    {
-        int offset = i - FAN_3_ON_MAIN_BOARD;
 
 	    i2c_devname_write_byte("FANCTRL2", 0x02 + offset ,0xc0);
         
@@ -190,6 +185,18 @@ _onlp_fan_board_init(void)
 
 	    i2c_devname_write_byte("FANCTRL2", 0x20 + 2 * offset, d1);
 	    i2c_devname_write_byte("FANCTRL2", 0x21 + 2 * offset, d2);
+
+    }
+    for (i = FAN_5_ON_MAIN_BOARD; i <= FAN_6_ON_MAIN_BOARD; i ++)
+    {
+        int offset = i - FAN_5_ON_MAIN_BOARD;
+
+	    i2c_devname_write_byte("FANCTRL1", 0x02 + offset ,0xc0);
+       
+        FAN_TO_REG(rpm);
+
+	    i2c_devname_write_byte("FANCTRL1", 0x20 + 2 * offset, d1);
+	    i2c_devname_write_byte("FANCTRL1", 0x21 + 2 * offset, d2);
     }
 
 	fan_initd=1;
@@ -241,12 +248,12 @@ _onlp_fani_info_get_fan(int local_id, onlp_fan_info_t* info)
      
         if (fan_tray == 0)
         {
-            d1 = i2c_devname_read_byte("FANCTRL1", 0x10 + 2 * (local_id - FAN_1_ON_MAIN_BOARD));
-            d2 = i2c_devname_read_byte("FANCTRL1", 0x11 + 2 * (local_id - FAN_1_ON_MAIN_BOARD));
+            d1 = i2c_devname_read_byte("FANCTRL1", 0x10 + 2 * (local_id - FAN_5_ON_MAIN_BOARD));
+            d2 = i2c_devname_read_byte("FANCTRL1", 0x11 + 2 * (local_id - FAN_5_ON_MAIN_BOARD));
         }else
         {
-            d1 = i2c_devname_read_byte("FANCTRL2", 0x10 + 2 * (local_id - FAN_3_ON_MAIN_BOARD));
-            d2 = i2c_devname_read_byte("FANCTRL2", 0x11 + 2 * (local_id - FAN_3_ON_MAIN_BOARD));
+            d1 = i2c_devname_read_byte("FANCTRL2", 0x10 + 2 * (local_id - FAN_1_ON_MAIN_BOARD) );
+            d2 = i2c_devname_read_byte("FANCTRL2", 0x11 + 2 * (local_id - FAN_1_ON_MAIN_BOARD) );
         }
 
         if (d1 < 0 || d2 < 0)
@@ -443,7 +450,7 @@ onlp_fani_rpm_set(onlp_oid_t id, int rpm)
 
 
 	/*get ret value for the speed set*/
-    FAN_TO_REG(rpm * 1000);
+    FAN_TO_REG(rpm);
     DEBUG_PRINT("local id %d, rpm %d(d1: %d, d2: %d)\n", local_id, rpm, d1, d2);
     //return ONLP_STATUS_OK;
 
@@ -454,12 +461,12 @@ onlp_fani_rpm_set(onlp_oid_t id, int rpm)
 
     if (fan_tray == 0)
     {
-        rc1 = i2c_devname_write_byte("FANCTRL1", 0x20 + 2 * (local_id - FAN_1_ON_MAIN_BOARD), d1);
-        rc2 = i2c_devname_write_byte("FANCTRL1", 0x21 + 2 * (local_id - FAN_1_ON_MAIN_BOARD), d2);
+        rc1 = i2c_devname_write_byte("FANCTRL1", 0x20 + 2 * (local_id - FAN_5_ON_MAIN_BOARD), d1);
+        rc2 = i2c_devname_write_byte("FANCTRL1", 0x21 + 2 * (local_id - FAN_5_ON_MAIN_BOARD), d2);
     }else
     {
-        rc1 = i2c_devname_write_byte("FANCTRL2", 0x20 + 2 * (local_id - FAN_3_ON_MAIN_BOARD), d1);
-        rc2 = i2c_devname_write_byte("FANCTRL2", 0x21 + 2 * (local_id - FAN_3_ON_MAIN_BOARD), d2);
+        rc1 = i2c_devname_write_byte("FANCTRL2", 0x20 + 2 * (local_id - FAN_1_ON_MAIN_BOARD), d1);
+        rc2 = i2c_devname_write_byte("FANCTRL2", 0x21 + 2 * (local_id - FAN_1_ON_MAIN_BOARD), d2);
     }
 
     if (rc1 < 0 || rc2 < 0)
@@ -529,12 +536,12 @@ onlp_fani_percentage_set(onlp_oid_t id, int p)
 
     if (fan_tray == 0)
     {
-        rc1 = i2c_devname_write_byte("FANCTRL1", 0x20 + 2 * (local_id - FAN_1_ON_MAIN_BOARD), d1);
-        rc2 = i2c_devname_write_byte("FANCTRL1", 0x21 + 2 * (local_id - FAN_1_ON_MAIN_BOARD), d2);
+        rc1 = i2c_devname_write_byte("FANCTRL1", 0x20 + 2 * (local_id - FAN_5_ON_MAIN_BOARD), d1);
+        rc2 = i2c_devname_write_byte("FANCTRL1", 0x21 + 2 * (local_id - FAN_5_ON_MAIN_BOARD), d2);
     }else
     {
-        rc1 = i2c_devname_write_byte("FANCTRL2", 0x20 + 2 * (local_id - FAN_3_ON_MAIN_BOARD), d1);
-        rc2 = i2c_devname_write_byte("FANCTRL2", 0x21 + 2 * (local_id - FAN_3_ON_MAIN_BOARD), d2);
+        rc1 = i2c_devname_write_byte("FANCTRL2", 0x20 + 2 * (local_id - FAN_1_ON_MAIN_BOARD) , d1);
+        rc2 = i2c_devname_write_byte("FANCTRL2", 0x21 + 2 * (local_id - FAN_1_ON_MAIN_BOARD) , d2);
     }
 
     if (rc1 < 0 || rc2 < 0)

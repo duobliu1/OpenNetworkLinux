@@ -101,8 +101,8 @@ enum psu_led_light_mode {
 
 enum locator_led_light_mode {
     LOCATOR_LED_MODE_OFF = 0,
-	LOCATOR_LED_MODE_BLUE_BLINKING,
-	LOCATOR_LED_MODE_BLUE,
+	LOCATOR_LED_MODE_GREEN_BLINKING,
+	LOCATOR_LED_MODE_GREEN,
 	LOCATOR_LED_MODE_RESERVERD,
 	LOCATOR_LED_MODE_UNKNOWN
 };
@@ -115,6 +115,14 @@ enum power_led_light_mode {
 	POWER_LED_MODE_UNKNOWN
 };
 
+enum fan_tray_led_light_mode {
+	FAN_TRAY_LED_MODE_OFF = 0,
+	FAN_TRAY_LED_MODE_GREEN,
+	FAN_TRAY_LED_MODE_YELLOW,
+	FAN_TRAY_LED_MODE_RESERVERD,
+	FAN_TRAY_LED_MODE_UNKNOWN
+};
+
 typedef enum onlp_led_id
 {
     LED_RESERVED = 0,
@@ -122,8 +130,9 @@ typedef enum onlp_led_id
 	LED_FAN,
     LED_LOCATOR,
 	LED_POWER,
-    LED_PSU2,
-    LED_PSU1  
+    LED_FAN_TRAY0,
+    LED_FAN_TRAY1,
+	LED_FAN_TRAY2,
 } onlp_led_id_t;
 
 enum ag7648_product_id get_product_id(void);

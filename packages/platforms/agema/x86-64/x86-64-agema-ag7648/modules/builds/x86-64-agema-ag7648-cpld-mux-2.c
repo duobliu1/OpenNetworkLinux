@@ -88,7 +88,7 @@ static int agema_i2c_cpld_mux_reg_write(struct i2c_adapter *adap,
 	unsigned short flags;
 	union i2c_smbus_data data;
 	struct i2c_adapter *ctrl_adap;
-	int try;
+	int try,change=0;
 	s32 res = -EIO;
 	u8  reg_val = 0;
     int intr, reset_ctrl;
@@ -112,48 +112,65 @@ static int agema_i2c_cpld_mux_reg_write(struct i2c_adapter *adap,
 			res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
                              I2C_SMBUS_WRITE, CPLD_CHANNEL_SELECT_REG,
                              I2C_SMBUS_BYTE_DATA, &data);
-			if (res != -EAGAIN)
-				break;
+			if (res == -EAGAIN)
+				continue;
             //read the interrupt status
 			res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
                              I2C_SMBUS_READ, CPLD_QSFP_INTR_STATUS_REG,
                              I2C_SMBUS_BYTE_DATA, &data);
-			if (res && res != -EAGAIN)
-				break;
+			if ( res == -EAGAIN)
+				continue;
 
             intr = data.byte;
 
             //read the reset control
-			res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
+            res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
                              I2C_SMBUS_READ, CPLD_QSFP_RESET_CTRL_REG,
                              I2C_SMBUS_BYTE_DATA, &data);
-			if (res && res != -EAGAIN)
-				break;
+			if ( res == -EAGAIN)
+				continue;
 
             reset_ctrl = data.byte;
+            
             /* there is an interrupt for QSFP port, including failure/plugin/un-plugin
             *  try to reset it.
             *
             */
             for (i = 0 ; i < NUM_OF_CPLD_CHANS; i ++)
             {
-                if ((intr & ( 1 << i )) == 0)
-                {
-                    reset_ctrl |= ~(1 << i);
+                if((reset_ctrl & ( 1 << i )) == 0){
+                    change=1;
+                }
+                if ((intr & ( 1 << i )) == 0 )
+                {   
+
+                    res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
+                            I2C_SMBUS_READ, CPLD_QSFP_RESET_CTRL_REG,
+                            I2C_SMBUS_BYTE_DATA, &data);
+                    if (res == -EAGAIN)
+                        continue;
+                    data.byte &= ~(1 << i);
+                    
+                    res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
+                            I2C_SMBUS_WRITE, CPLD_QSFP_RESET_CTRL_REG,
+                            I2C_SMBUS_BYTE_DATA, &data);
+                    if (res == -EAGAIN)
+                        continue;
+                    change=1;
                 }
             }
-            if (reset_ctrl != data.byte)
-            {
-                msleep(10); //sleep 10ms
-
-                data.byte = reset_ctrl;
-                // modify the register
+            if(change){
+                msleep(10); 
+                data.byte=CPLD_DESELECT_CHANNEL;
                 res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
-                                 I2C_SMBUS_WRITE, CPLD_QSFP_RESET_CTRL_REG,
-                                 I2C_SMBUS_BYTE_DATA, &data);
-                if (res != -EAGAIN)
-                    break;
+                             I2C_SMBUS_WRITE, CPLD_QSFP_RESET_CTRL_REG,
+                             I2C_SMBUS_BYTE_DATA, &data);
+                if (res == -EAGAIN)
+                    continue;
+                msleep(200);
             }
+
+            
 			// read first
 			//res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,
             //                I2C_SMBUS_READ, CPLD_CHANNEL_SELECT_REG,
@@ -164,7 +181,7 @@ static int agema_i2c_cpld_mux_reg_write(struct i2c_adapter *adap,
 			// modify the field we wanted
 			//data.byte &= ~(CPLD_CHANNEL_SELECT_MASK << CPLD_CHANNEL_SELECT_OFFSET);
 			//reg_val   |=  (((~(1 << val)) & CPLD_CHANNEL_SELECT_MASK) << CPLD_CHANNEL_SELECT_OFFSET);
-			data.byte = reg_val;
+			data.byte = (~(1 << val)) & 0xff;
 
 			// modify the register
 			res = ctrl_adap->algo->smbus_xfer(ctrl_adap, CTRL_CPLD_I2C_ADDR, flags,

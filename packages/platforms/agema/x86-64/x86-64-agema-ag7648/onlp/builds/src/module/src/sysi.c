@@ -78,35 +78,31 @@ onlp_sysi_platform_info_get(onlp_platform_info_t* pi)
 int
 onlp_sysi_onie_data_get(uint8_t** data, int* size)
 {
+  
     uint8_t* rdata = aim_zmalloc(256);
 
-#if 0    
-    if (i2c_devname_read_block("ID_EEPROM", 0, (char*)rdata, 256) < 0)
-    {
-        aim_free(rdata);
-        DEBUG_PRINT("size %d", *size);
-        return ONLP_STATUS_E_INTERNAL;
-    }
-	int fd,rc_size;
-	char  fullpath[20] = {0};
-	
-	sprintf(fullpath, "/dev/mtd7");
-	
-	fd=open(fullpath,O_RDWR);
-	
-	if(fd<0){
-		aim_free(rdata);
-		return ONLP_STATUS_E_INTERNAL ;
+    int i,r_data,re_cnt;
+
+	for(i=0;i<256;i++){
+		re_cnt=3;
+		while(re_cnt){
+			r_data=i2c_devname_read_byte("ID_EEPROM",i);
+			if(r_data<0){
+				re_cnt--;
+				continue;
+			}
+			rdata[i]=r_data;
+			break;
+		}
+		if(re_cnt==0){
+			AIM_LOG_ERROR("Unable to read the %d reg \r\n",i);
+			return ONLP_STATUS_E_INTERNAL;
+		}
+			
 	}
-		
-	rc_size=read(fd,rdata,256);
-	
-	if(rc_size<0||rc_size!=256){
-		aim_free(rdata);
-		return ONLP_STATUS_E_INTERNAL ;
-	}
-#endif			
+
     *data = rdata;
+
     return ONLP_STATUS_OK;
 
 	
@@ -158,7 +154,7 @@ onlp_sysi_platform_manage_fans(void)
     onlp_thermal_info_t ti2, ti3, ti4;
     int mtemp=0;
     int new_rpm=0;
-
+    
     if (chassis_fan_count() == 0) {
         return ONLP_STATUS_E_UNSUPPORTED;
     }
@@ -193,6 +189,7 @@ onlp_sysi_platform_manage_fans(void)
 
     /* Bring fan speed according the temp
      */
+  
     if(mtemp<25000)
         new_rpm=FAN_IDLE_RPM;
     else if((mtemp>=30000)&&(mtemp<40000))
@@ -206,13 +203,17 @@ onlp_sysi_platform_manage_fans(void)
     else{
         return ONLP_STATUS_OK;
    }
-       
+  
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(1),new_rpm);
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(2),new_rpm); 
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(3),new_rpm); 
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(4),new_rpm); 
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(5),new_rpm); 
-    onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(6),new_rpm); 
+    onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(6),new_rpm);
+
+
+     
+ 
      
     return ONLP_STATUS_OK;
 }
@@ -221,69 +222,73 @@ onlp_sysi_platform_manage_fans(void)
 int
 onlp_sysi_platform_manage_leds(void)
 { 
-		int rc,rc1;
-		
-		onlp_fan_info_t info1,info2;
+		int i,tray_i,rc;
+		onlp_fan_info_t info;
 		onlp_led_mode_t fan_new_mode;
-		onlp_psu_info_t psu1;
-		onlp_led_mode_t psu1_new_mode;
-		onlp_psu_info_t psu2;
-		onlp_led_mode_t psu2_new_mode;
+        onlp_led_mode_t fan_tray_new_mode[3];
+		onlp_psu_info_t psu;
+		onlp_led_mode_t psu_new_mode;
 		onlp_led_mode_t sys_new_mode;
+        onlp_led_mode_t locator_new_mode;
 		/*fan led */
-		rc=onlp_fani_info_get(ONLP_FAN_ID_CREATE(1), &info1);
+		/*fan led */
+        for(tray_i=0;tray_i<3;tray_i++){
+            for(i=CHASSIS_FAN_COUNT-2*tray_i;i>=CHASSIS_FAN_COUNT-2*tray_i-1;i--){
+                rc=onlp_fani_info_get(ONLP_FAN_ID_CREATE(i), &info);
+                if ((rc != ONLP_STATUS_OK) ||((info.status&0x1)!=1)){
+                    fan_tray_new_mode[tray_i]=ONLP_LED_MODE_OFF;
+                    goto tray_next;
+                }
+                else{
+                    if((info.status&0x2)==1){
+                        fan_tray_new_mode[tray_i]=ONLP_LED_MODE_YELLOW;
+                        goto tray_next;
+                    }
+                }
+            }
+            fan_tray_new_mode[tray_i]=ONLP_LED_MODE_GREEN;
+tray_next:  continue;
+        }
+        onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_FAN_TRAY0),fan_tray_new_mode[0]);
+        onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_FAN_TRAY1),fan_tray_new_mode[1]);
+        onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_FAN_TRAY2),fan_tray_new_mode[2]);
         
-        rc1=onlp_fani_info_get(ONLP_FAN_ID_CREATE(2), &info2);
-        
-		if ((rc != ONLP_STATUS_OK)||(rc1 != ONLP_STATUS_OK)){
-			fan_new_mode=ONLP_LED_MODE_RED;
-			goto psu1_led;
-		}
-		if(((info1.status&0x3)==1)&&((info2.status&0x3)==1))
-			fan_new_mode=ONLP_LED_MODE_GREEN;
-		else 
-			fan_new_mode=ONLP_LED_MODE_RED;
-       
-psu1_led:		
+        if((fan_tray_new_mode[0]==ONLP_LED_MODE_GREEN)&&(fan_tray_new_mode[1]==ONLP_LED_MODE_GREEN)&& 
+            (fan_tray_new_mode[2]==ONLP_LED_MODE_GREEN))
+            fan_new_mode=ONLP_LED_MODE_GREEN;
+        else if((fan_tray_new_mode[0]==ONLP_LED_MODE_OFF)||(fan_tray_new_mode[1]==ONLP_LED_MODE_OFF)|| 
+            (fan_tray_new_mode[2]==ONLP_LED_MODE_OFF))
+             fan_new_mode=ONLP_LED_MODE_YELLOW;
+        else
+            fan_new_mode=ONLP_LED_MODE_YELLOW_BLINKING;
+    
 		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_FAN),fan_new_mode);
 		/*psu1 and psu2 led */
-		rc=onlp_psui_info_get(ONLP_PSU_ID_CREATE(1),&psu1);
-		
-		if (rc != ONLP_STATUS_OK) {
-			psu1_new_mode=ONLP_LED_MODE_OFF;
-			goto psu2_led;
-		}
-		
-		if((psu1.status&0x1)&&!(psu1.status&0x2))
-			psu1_new_mode=ONLP_LED_MODE_GREEN;
-		else
-			psu1_new_mode=ONLP_LED_MODE_OFF;
-psu2_led:		
-		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_PSU1),psu1_new_mode);
-		//psu2 led 	----------------
-			rc=onlp_psui_info_get(ONLP_PSU_ID_CREATE(2),&psu2);
-			
-		 if (rc != ONLP_STATUS_OK) {
-			psu2_new_mode=ONLP_LED_MODE_OFF;
-			goto sys_led;
-		}
-		
-		if((psu2.status&0x1)&&!(psu2.status&0x2))
-			psu2_new_mode=ONLP_LED_MODE_GREEN;
-		else
-			psu2_new_mode=ONLP_LED_MODE_OFF;
+        for(i=1;i<=CHASSIS_PSU_COUNT;i++){
+            rc=onlp_psui_info_get(ONLP_PSU_ID_CREATE(i),&psu);
+            
+            if (rc != ONLP_STATUS_OK) {
+               continue;
+            }
+            if((psu.status&0x1)&&!(psu.status&0x2)){
+                psu_new_mode=ONLP_LED_MODE_GREEN;
+                goto sys_led;
+            }
+        }
+		psu_new_mode=ONLP_LED_MODE_YELLOW_BLINKING;
+     
 sys_led	:		
-		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_PSU2),psu2_new_mode);
+		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_POWER),psu_new_mode);
 		//sys led 	----------------
-
-		if((fan_new_mode!=ONLP_LED_MODE_GREEN)||(psu2_new_mode!=ONLP_LED_MODE_GREEN)|| \
-			(psu1_new_mode!=ONLP_LED_MODE_GREEN))
-			sys_new_mode=ONLP_LED_MODE_RED_BLINKING;
+		if((fan_new_mode!=ONLP_LED_MODE_GREEN)||(psu_new_mode!=ONLP_LED_MODE_GREEN))
+			sys_new_mode=ONLP_LED_MODE_YELLOW_BLINKING;
 		else
 			sys_new_mode=ONLP_LED_MODE_GREEN;
 		
 		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_SYS),sys_new_mode);
-
+        
+        locator_new_mode=ONLP_LED_MODE_GREEN;
+        onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_LOCATOR),locator_new_mode);
 		return ONLP_STATUS_OK;
 }
 

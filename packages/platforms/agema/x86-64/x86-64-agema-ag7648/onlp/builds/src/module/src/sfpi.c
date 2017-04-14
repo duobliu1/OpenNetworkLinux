@@ -309,9 +309,10 @@ onlp_sfpi_eeprom_read(int port, uint8_t data[256])
      * Return OK if eeprom is read
      */
 	 
-	//int i,r_data,re_cnt;
+	int i,r_data,re_cnt;
 	char sfp_name[32];
-	
+   
+	//int i,re_cnt;uint8_t r_data;
     memset(data, 0, 256);
     memset(sfp_name, 0x0, sizeof(sfp_name));
 
@@ -330,15 +331,17 @@ onlp_sfpi_eeprom_read(int port, uint8_t data[256])
         sprintf(sfp_name, "SFP%d", port);
     else
         sprintf(sfp_name, "QSFP%d", port);
-
-    
-    if (i2c_devname_read_block(sfp_name, 0, (char *)data, 256) < 0)
-    {
-        AIM_LOG_ERROR("Unable to read the port %d eeprom\r\n", port);
-        return ONLP_STATUS_E_INTERNAL;
+ #if 0 
+    for(i=0;i<8;i++){
+        if (i2c_devname_read_block(sfp_name, (32*i), (char*)(data+32*i), 32) < 0)
+        {
+            AIM_LOG_ERROR("Unable to read the port %d eeprom\r\n", port);
+            return ONLP_STATUS_E_INTERNAL;
+        }
     }
+#endif	
 
-#if 0
+
 	for(i=0;i<256;i++){
 		re_cnt=3;
 		while(re_cnt){
@@ -356,7 +359,7 @@ onlp_sfpi_eeprom_read(int port, uint8_t data[256])
 		}
 			
 	}
-#endif	
+
     return ONLP_STATUS_OK;
 }
 

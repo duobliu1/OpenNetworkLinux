@@ -182,5 +182,5 @@ int chassis_fan_count(void)
 
 int chassis_led_count(void)
 {
-    return 4;
+    return 7;
 }
