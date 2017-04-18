@@ -113,7 +113,7 @@ onlp_sfpi_is_present(int port)
 int
 onlp_sfpi_presence_bitmap_get(onlp_sfp_bitmap_t* dst)
 {
-    char status;
+    int status;
 	int port, i = 0;
 	uint64_t presence_all=0;
 		
@@ -158,7 +158,7 @@ onlp_sfpi_presence_bitmap_get(onlp_sfp_bitmap_t* dst)
 int
 onlp_sfpi_rx_los_bitmap_get(onlp_sfp_bitmap_t* dst)
 {
-    char status;
+    int status;
     int   port,i = 0;
 	uint64_t rx_los_all;		
 	

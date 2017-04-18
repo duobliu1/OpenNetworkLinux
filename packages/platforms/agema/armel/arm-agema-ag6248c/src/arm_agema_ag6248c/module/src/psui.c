@@ -83,7 +83,7 @@ static int
 psu_status_info_get(int id, char *node)
 {
     int ret;
-	char r_data;
+	int r_data;
 	ret=i2c_devname_read_byte("CPLD",PSU_STATUS_REG);
 	
 	if(ret<0)

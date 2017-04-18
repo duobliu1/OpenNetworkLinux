@@ -193,7 +193,8 @@ onlp_sysi_platform_manage_fans(void)
        
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(1),new_rpm);
     onlp_fani_rpm_set(ONLP_FAN_ID_CREATE(2),new_rpm); 
-     
+    
+        
     return ONLP_STATUS_OK;
 }
 
@@ -274,14 +275,15 @@ sys_led	:
 		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_PSU2),psu2_new_mode);
 		//sys led 	----------------
 
-		if((fan_new_mode!=ONLP_LED_MODE_GREEN)||(psu2_new_mode!=ONLP_LED_MODE_GREEN)|| \
-			(psu1_new_mode!=ONLP_LED_MODE_GREEN))
+		if((fan_new_mode!=ONLP_LED_MODE_GREEN)||((psu2_new_mode!=ONLP_LED_MODE_GREEN)&& \
+			(psu1_new_mode!=ONLP_LED_MODE_GREEN)))
 			sys_new_mode=ONLP_LED_MODE_RED_BLINKING;
 		else
 			sys_new_mode=ONLP_LED_MODE_GREEN;
 		
 		onlp_ledi_mode_set(ONLP_LED_ID_CREATE(LED_SYS),sys_new_mode);
-
+        
+              
 		return ONLP_STATUS_OK;
 }
 
