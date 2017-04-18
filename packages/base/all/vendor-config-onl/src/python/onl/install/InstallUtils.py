@@ -396,7 +396,7 @@ class UbinfoParser(SubprocessMixin):
         try:
             cmd = ('ubinfo', '-a',)
             lines = self.check_output(cmd).splitlines()
-        except OSError as ex:
+        except Exception as ex:
             return self
 
         dev = None
