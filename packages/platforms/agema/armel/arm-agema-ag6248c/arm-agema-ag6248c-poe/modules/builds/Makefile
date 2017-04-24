@@ -1,4 +1,4 @@
-KERNELS := onl-kernel-3.2-deb7-arm-iproc-all:armel
+KERNELS := onl-kernel-3.2-lts-arm-iproc-all:armel
 KMODULES := $(wildcard *.c)
 VENDOR := agema
 BASENAME := arm-agema-ag6248c-poe
