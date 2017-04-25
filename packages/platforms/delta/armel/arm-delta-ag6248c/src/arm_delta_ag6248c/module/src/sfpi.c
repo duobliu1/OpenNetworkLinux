@@ -142,7 +142,7 @@ onlp_sfpi_presence_bitmap_get(onlp_sfp_bitmap_t* dst)
 	
 	/* Convert to 64 bit integer in port order */
     
-	presence_all = status;
+	presence_all = status & 0x3;
 	
     presence_all <<= port;
 	
@@ -160,7 +160,9 @@ onlp_sfpi_rx_los_bitmap_get(onlp_sfp_bitmap_t* dst)
 {
     int status;
     int   port,i = 0;
-	uint64_t rx_los_all;		
+	uint64_t rx_los_all = 0;
+
+    AIM_BITMAP_CLR_ALL(dst);
 	
 	if((platform_id == PLATFORM_ID_POWERPC_DELTA_AG6248C_POE_R0)|| \
 		(platform_id ==PLATFORM_ID_POWERPC_DELTA_AG6248C_R0)){
@@ -183,7 +185,7 @@ onlp_sfpi_rx_los_bitmap_get(onlp_sfp_bitmap_t* dst)
 	status>>=6;
 
     /* Convert to 64 bit integer in port order */
-    rx_los_all = status;
+    rx_los_all = status & 0x3;
 	
     rx_los_all <<= port;
 
