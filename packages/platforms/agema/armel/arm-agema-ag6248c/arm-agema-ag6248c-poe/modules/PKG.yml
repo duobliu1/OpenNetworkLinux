@@ -1,1 +1,0 @@
-!include $ONL_TEMPLATES/platform-modules.yml ARCH=armel VENDOR=agema BASENAME=arm-agema-ag6248c-poe KERNELS="onl-kernel-3.2-lts-arm-iproc-all:armel"

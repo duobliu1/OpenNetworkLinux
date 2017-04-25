@@ -1,1 +1,0 @@
-!include $ONL_TEMPLATES/onlp-platform-any.yml PLATFORM=arm-agema-ag6248c ARCH=armel TOOLCHAIN=arm-linux-gnueabi
